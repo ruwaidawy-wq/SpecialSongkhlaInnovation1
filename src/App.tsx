@@ -319,7 +319,7 @@ const SURVEY_QUESTIONS = [
 const SearchableSelect = ({ options, value, onChange, placeholder }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const filteredOptions = options.filter((option) =>
+  const filteredOptions = options.filter((option: any) =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
