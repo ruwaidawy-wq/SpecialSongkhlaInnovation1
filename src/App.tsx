@@ -384,7 +384,7 @@ filteredOptions.map((option: any, idx: any) => (
   );
 };
 
-const Header = ({ setPage }) => (
+const Header = ({ setPage }: { setPage: (page: string) => void }) => (
   <header className="bg-gradient-to-r from-[#8B0000] via-[#A0522D] to-[#8B4513] text-white shadow-xl border-b-[6px] border-[#FFD700] relative overflow-hidden">
     <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/thai-pattern.png')] pointer-events-none"></div>
     <div className="container mx-auto px-4 py-4 relative z-10">
