@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-
-// --- ส่วนจัดการไอคอน (SVG ฝังในตัว แก้ปัญหา Library Error) ---
+import { db } from "./firebase";
+import { ref, push, onValue, set, update, remove } from "firebase/database";
+// --- ส่วนจัดการไอคอน (SVG ฝังในตัว) ---
 const Icon = ({ path, size = 20, className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -58,8 +59,9 @@ const icons = {
     '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
   user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
-  printer:
-    '<polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect>',
+  toy: '<path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/>',
+  game: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4"/><path d="M8 10v4"/><circle cx="17" cy="12" r="1"/>',
+  idea: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
 };
 
 // --- ข้อมูลคงที่ (Data) ---
@@ -271,6 +273,7 @@ const CLASSROOMS = [
   "ห้องเรียนดนตรี",
   "ห้องเรียนศิลปะ",
   "ห้องเรียนแพทย์แผนไทย",
+  "ห้องเรียนศูนย์เทคโนโลยีสารสนเทศเพื่อเด็กป่วยในโรงพยาบาล",
 ];
 
 const SURVEY_QUESTIONS = [
@@ -587,7 +590,9 @@ const SatisfactionSurvey = ({ onSubmit }) => {
           </div>
           <div className="mb-8">
             <h3 className="text-lg font-bold text-[#8B0000] border-b border-[#DEB887] pb-2 mb-4 font-serif">
-              ตอนที่ 2 ความพึงพอใจในการจัดโครงการ
+              ตอนที่ 2
+              ความพึงพอใจในการจัดโครงการส่งเสริมการผลิตสื่อการเรียนการสอน
+              กิจกรรมการประกวดสื่อการเรียนการสอน
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse min-w-[600px]">
@@ -606,7 +611,7 @@ const SatisfactionSurvey = ({ onSubmit }) => {
                     <React.Fragment key={sIdx}>
                       <tr className="bg-[#FFF8DC]">
                         <td
-                          colSpan="6"
+                          colSpan={6}
                           className="p-2 font-bold text-[#8B4513] border border-[#DEB887]"
                         >
                           {s.category}
@@ -653,7 +658,7 @@ const SatisfactionSurvey = ({ onSubmit }) => {
             </h3>
             <textarea
               className="w-full border border-[#DEB887] rounded-lg p-3"
-              rows="4"
+              rows={4}
               onChange={(e) => setSuggestion(e.target.value)}
             ></textarea>
           </div>
@@ -666,6 +671,120 @@ const SatisfactionSurvey = ({ onSubmit }) => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// --- New Component: Ideas Section ---
+const MediaIdeas = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const ideas = [
+    {
+      title: "ของเล่นพื้นบ้าน (Toy-based Learning)",
+      icon: icons.toy,
+      items: [
+        {
+          name: "เดินกะลา",
+          desc: "สอนเรื่องสมดุลและการนำเศษวัสดุ (กะลามะพร้าว) มาใช้ประโยชน์",
+        },
+        {
+          name: "พับใบตอง/สานปลาตะเพียน",
+          desc: "ฝึกสมาธิ กล้ามเนื้อมัดเล็ก และการเรียนรู้เรื่องพืชพรรณท้องถิ่น",
+        },
+        {
+          name: "กังหันไม้ไผ่ หรือ ปืนก้านกล้วย",
+          desc: "เรียนรู้เรื่องแรงลมและคุณสมบัติของต้นกล้วย",
+        },
+      ],
+    },
+    {
+      title: "เล่าเรื่องและภาพจำ (Visual & Storytelling)",
+      icon: icons.bookOpen,
+      items: [
+        {
+          name: "สมุดเล่มเล็ก (Pop-up Book)",
+          desc: "ทำมือขึ้นมาเองโดยเล่าเรื่อง ประเพณีในท้องถิ่น เช่น ประเพณีลอยกระทง หรือวันสงกรานต์ โดยให้เด็กๆ ช่วยกันระบายสีและติดกาว",
+        },
+        {
+          name: "หุ่นนิ้วมือ/หุ่นเชิดจากเศษผ้า",
+          desc: "ใช้เล่าประกอบนิทานพื้นบ้านหรือวรรณคดีไทย ทำให้เรื่องเล่ามีชีวิตชีวาขึ้น",
+        },
+        {
+          name: "บัตรคำทำมือ (Flashcards)",
+          desc: "ใช้ภาพวาดฝีมือเด็กๆ คู่กับคำศัพท์เกี่ยวกับชื่อสมุนไพร เครื่องครัวไทย (เช่น สาก ครก กระทะ) หรือชื่อขนมไทย",
+        },
+      ],
+    },
+    {
+      title: "เกมและการทดลอง (Game-based Learning)",
+      icon: icons.game,
+      items: [
+        {
+          name: "ตารางหมากรุกหรือหมากเก็บ",
+          desc: "ใช้ก้อนหินหรือเมล็ดผลไม้มาเป็นอุปกรณ์ สอนเรื่องการวางแผนและกติกาทางสังคม",
+        },
+        {
+          name: 'แผงสาธิตสมุนไพร "ดม-ดู-ดึง"',
+          desc: "ทำบอร์ดที่มีซองใส่สมุนไพรแห้ง (ขิง ข่า ตะไคร้ ใบมะกรูด) ให้เด็กๆ ได้ดมกลิ่นและสัมผัสพื้นผิวจริง",
+        },
+        {
+          name: "โมเดลจำลองบ้านไทย",
+          desc: "ใช้ไม้ไอศกรีมหรือกระดาษลังมาต่อเป็นบ้านทรงไทย เพื่อให้เห็นภูมิปัญญาเรื่องการยกใต้ถุนสูงป้องกันน้ำท่วม",
+        },
+      ],
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl p-5 border border-[#DEB887] shadow-md">
+      <h3 className="text-[#8B4513] font-bold text-lg mb-4 flex items-center gap-2 font-serif">
+        <Icon path={icons.idea} className="text-yellow-500" size={24} />{" "}
+        ไอเดียสื่อการสอนภูมิปัญญาไทย
+      </h3>
+      <div className="space-y-3">
+        {ideas.map((idea, idx) => (
+          <div
+            key={idx}
+            className="border border-amber-200 rounded-lg overflow-hidden"
+          >
+            <button
+              onClick={() => setActiveTab(activeTab === idx ? -1 : idx)}
+              className={`w-full text-left p-3 font-bold flex justify-between items-center transition-colors ${
+                activeTab === idx
+                  ? "bg-[#8B4513] text-white"
+                  : "bg-amber-50 text-[#8B4513] hover:bg-amber-100"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Icon path={idea.icon} size={18} /> {idea.title}
+              </span>
+              <Icon
+                path={icons.chevronDown}
+                className={`transform transition-transform ${
+                  activeTab === idx ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {activeTab === idx && (
+              <div className="p-4 bg-white animate-fade-in">
+                <ul className="space-y-3">
+                  {idea.items.map((item, i) => (
+                    <li
+                      key={i}
+                      className="text-sm text-gray-700 pb-2 border-b border-gray-100 last:border-0 last:pb-0"
+                    >
+                      <strong className="text-[#8B0000] block mb-1">
+                        {item.name}
+                      </strong>
+                      {item.desc}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -802,6 +921,7 @@ const Dashboard = ({
   onRegister,
   availableClassrooms,
   onRequestEdit,
+  nums,
 }) => {
   const [formData, setFormData] = useState({
     classroom: "",
@@ -813,7 +933,7 @@ const Dashboard = ({
   const [showModal, setShowModal] = useState(false);
   const [lastSub, setLastSub] = useState(null);
   const [editSub, setEditSub] = useState(null);
-
+  const nextNumber = nums && nums.length > 0 ? nums[nums.length - 1] : "เต็ม";
   const pending = CLASSROOMS.filter(
     (c) => !submissions.map((s) => s.classroom).includes(c)
   );
@@ -828,7 +948,7 @@ const Dashboard = ({
     setTName("");
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (
       !formData.classroom ||
@@ -836,7 +956,7 @@ const Dashboard = ({
       !formData.projectTitle
     )
       return alert("กรอกข้อมูลให้ครบ");
-    const res = onRegister(formData);
+    const res = await onRegister(formData);
     if (res) {
       setLastSub(res);
       setShowModal(true);
@@ -875,16 +995,16 @@ const Dashboard = ({
                 size={18}
                 className="text-green-600 mt-0.5 flex-shrink-0"
               />
-              <span>ส่งตัวแทนนำเสนอ</span>
+              <span>ส่งตัวแทนนำเสนอผลงานบนเวที</span>
             </li>
             <li className="pt-2 border-t border-[#DEB887]/50">
               <div className="font-bold mb-1 flex items-center gap-2">
-                1. สิ่งที่ต้องเตรียมมาในวันนำเสนอ{" "}
+                1. เล่มรายงาน{" "}
                 <span className="bg-[#8B0000] text-white px-2 py-0.5 rounded-full text-xs">
-                  รายงาน 1 เล่ม
+                  1 เล่ม
                 </span>
               </div>
-              <div className="text-xs text-gray-700 mb-1 ml-6">
+              <div className="text-xs text-gray-700 mb-1 ml-6 bg-white/50 p-1 rounded">
                 *(ไม่ต้องแนบไฟล์ในระบบ ให้พิมพ์และนำมาส่งกรรมการ)*
               </div>
               <a
@@ -897,23 +1017,27 @@ const Dashboard = ({
             </li>
             <li>
               <div className="font-bold mb-1 flex items-center gap-2">
-                2. สิ่งที่ต้องเตรียมมาในวันนำเสนอ{" "}
+                2. แผ่นพับ{" "}
                 <span className="bg-[#8B0000] text-white px-2 py-0.5 rounded-full text-xs">
-                  แผ่นพับ 1 ฉบับ
+                  1 ฉบับ
                 </span>
               </div>
-              <div className="text-xs text-gray-700 mb-1 ml-6">
+              <div className="text-xs text-gray-700 mb-1 ml-6 bg-white/50 p-1 rounded">
                 *(ไม่ต้องแนบไฟล์ในระบบ ให้พิมพ์และนำมาส่งกรรมการ)*
               </div>
-              <div className="bg-amber-100 p-2 rounded border border-amber-200 ml-6">
-                <a
-                  href="https://www.canva.com/design/DAFb3SwnuzA/0XOnp35Ot3mU0cEwGNC34A/view"
-                  target="_blank"
-                  className="flex items-center gap-1 text-purple-700 text-xs font-bold hover:underline"
-                >
-                  <Icon path={icons.externalLink} size={12} /> เปิดเทมเพลต Canva
-                </a>
+              <div className="bg-amber-100 p-2 rounded border border-amber-200 ml-6 text-xs text-gray-600 mb-2">
+                <span className="flex items-center gap-1">
+                  <Icon path={icons.idea} size={12} /> สามารถออกแบบเองได้
+                </span>
               </div>
+              <a
+                href="https://www.canva.com/design/DAFb3SwnuzA/0XOnp35Ot3mU0cEwGNC34A/view?utm_content=DAFb3SwnuzA&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink&mode=preview"
+                target="_blank"
+                className="flex items-center gap-1 text-purple-700 text-xs font-bold hover:underline ml-6"
+              >
+                <Icon path={icons.externalLink} size={12} /> ตัวอย่างเทมเพลต
+                Canva
+              </a>
             </li>
             <li className="pt-2 border-t border-[#DEB887]/50">
               <a
@@ -926,6 +1050,9 @@ const Dashboard = ({
             </li>
           </ul>
         </div>
+
+        {/* ส่วนไอเดียสื่อการสอน */}
+        <MediaIdeas />
 
         <div className="bg-white rounded-t-xl shadow-lg border border-[#DEB887] overflow-hidden">
           <div className="bg-gradient-to-r from-[#CD853F] to-[#8B4513] p-4 text-white font-bold text-xl flex items-center gap-2 border-b-4 border-[#FFD700]">
@@ -950,6 +1077,7 @@ const Dashboard = ({
                   ))}
                 </select>
               </div>
+
               <div className="bg-white p-3 rounded border shadow-inner">
                 <label className="font-bold text-[#8B4513]">
                   2. ครูผู้จัดทำ
@@ -989,7 +1117,7 @@ const Dashboard = ({
                   {formData.teachers.map((t, idx) => (
                     <li
                       key={idx}
-                      className="flex justify-between bg-[#FFF8DC] p-2 rounded border border-[#F0E68C] text-sm"
+                      className="flex justify-between bg-FFF8DC p-2 rounded border border-[#F0E68C] text-sm"
                     >
                       <span>
                         {t.name}
@@ -1340,10 +1468,10 @@ const AdminPanel = ({
                     </div>
                     <div>"{sub.projectTitle}"</div>
                     <div className="text-xs text-gray-500">
-                      {sub.teachers.map((t) => t.name).join(", ")}
+                      {(sub.teachers || []).map((t) => t.name).join(", ")}{" "}
                     </div>
 
-                    {/* --- ส่วนแสดงผลการขอแก้ไขที่ปรับปรุงใหม่ --- */}
+                    {/* --- ส่วนแสดงผลการขอแก้ไข --- */}
                     {sub.hasEditRequest && (
                       <div className="mt-2 bg-white border-2 border-amber-300 p-3 rounded-lg text-xs shadow-sm">
                         <div className="font-bold text-amber-700 mb-2 flex items-center gap-1">
@@ -1399,7 +1527,7 @@ const AdminPanel = ({
                             <div>
                               <span className="font-semibold">ผู้จัดทำ:</span>
                               <ul className="list-disc list-inside pl-1 text-green-700">
-                                {sub.editData.teachers.map((t, i) => (
+                                {(sub.editData?.teachers || []).map((t, i) => (
                                   <li key={i} className="font-bold">
                                     {t.name} ({t.position})
                                   </li>
@@ -1552,6 +1680,7 @@ const App = () => {
       )
     );
 
+  // Check if delete function is correctly implemented
   const handleDeleteSubmission = (id) => {
     if (window.confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) {
       setSubs(subs.filter((s) => s.id !== id));
@@ -1575,6 +1704,7 @@ const App = () => {
             onRegister={reg}
             availableClassrooms={availRooms}
             onRequestEdit={reqEdit}
+            nums={subs.length}
           />
         )}
         {page === "admin" && (
