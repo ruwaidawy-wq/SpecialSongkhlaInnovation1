@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db } from "./firebase";
 import { ref, push, onValue, set, update, remove } from "firebase/database";
 // --- ส่วนจัดการไอคอน (SVG ฝังในตัว) ---
-const Icon = ({ path, size = 20, className = "" }) => (
+const Icon = ({ path, size = 20, className = "" }: { path: any; size?: number; className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
