@@ -353,8 +353,8 @@ const SearchableSelect = ({ options, value, onChange, placeholder }: any) => {
           </div>
           <div className="overflow-y-auto flex-1 p-1">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((option, idx) => (
-                <div
+filteredOptions.map((option: any, idx: any) => (
+  <div
                   key={idx}
                   className="p-2 hover:bg-amber-100 cursor-pointer rounded text-sm text-gray-700"
                   onClick={() => {
