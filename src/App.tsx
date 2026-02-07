@@ -316,7 +316,7 @@ const SURVEY_QUESTIONS = [
 ];
 
 // --- UI Components ---
-const SearchableSelect = ({ options, value, onChange, placeholder }) => {
+const SearchableSelect = ({ options, value, onChange, placeholder }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const filteredOptions = options.filter((option) =>
